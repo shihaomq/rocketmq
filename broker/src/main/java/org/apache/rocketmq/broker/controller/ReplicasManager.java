@@ -259,6 +259,15 @@ public class ReplicasManager {
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
                 // Notify ha service, change to master
+                //1. 关闭服务端链接
+                //2. 清理异常落盘消息文件（脏数据文件）
+                //  2.1. 找到异常落盘消息物理位点。
+                //  2.2. truncateDirtyFiles
+                //    2.2.1 停止消息CQ分发（rePut）线程
+                //    2.2.2 清理异常位点后的CQ文件数据
+                //    2.2.3 清理异常位点后的commitlog文件数据
+                //    2.2.4 恢复（更新）写位点map(topicQueueTable)
+                //    2.2.5 重建并重启rePut线程，从调整的位点开始分发CQ
                 this.haService.changeToMaster(newMasterEpoch);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
