@@ -239,6 +239,7 @@ public class ReplicasManager {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
                 this.masterEpoch = newMasterEpoch;
+                // broker角色未发生变化执行的逻辑（原本就是主，MasterEpoch版本变更后，自己还是主）
                 if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
                     // Change SyncStateSet
                     final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
@@ -250,7 +251,7 @@ public class ReplicasManager {
                     registerBrokerWhenRoleChange();
                     return;
                 }
-
+                // broker角色未发生变化执行的逻辑（原本就是从，MasterEpoch版本变更后，自己变成主）
                 // Change SyncStateSet
                 final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
@@ -272,16 +273,23 @@ public class ReplicasManager {
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+                // 启动一些特殊线程
+                // 1. 启动BrokerAttachedPlugin插件（作用，加载与使用？）
+                // 2. 启动定时消息检测投递线程
+                // 3. 启动半事务消息投递线程
                 this.brokerController.changeSpecialServiceStatus(true);
 
                 // Change record
                 this.masterAddress = this.brokerAddress;
                 this.masterBrokerId = this.brokerControllerId;
-
+                // 开启定时（每5s）检查更新HaService中的同步副本(syncStateSet)信息，并与ReplicasMgr中的syncStateSet做比较
+                // 是否不通，如果有变化，则将HaService中的则syncStateSet上报给controller
                 schedulingCheckSyncStateSet();
-
+                //更新topic.json版本
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
+                // 再次提交 检查本次同步副本信任务
                 this.executorService.submit(this::checkSyncStateSetAndDoReport);
+                // 重新向nameser注册 broker信息
                 registerBrokerWhenRoleChange();
             }
         }
