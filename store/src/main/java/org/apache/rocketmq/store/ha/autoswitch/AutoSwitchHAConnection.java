@@ -596,6 +596,10 @@ public class AutoSwitchHAConnection implements HAConnection {
                 // We must ensure that the transmitted logs are within the same epoch
                 // If currentEpochEndOffset == -1, means that currentTransferEpoch = last epoch, so the endOffset = Long.max
                 final long currentEpochEndOffset = AutoSwitchHAConnection.this.currentTransferEpochEndOffset;
+                // 本段代码保证一次传输的日志数据是在同一个epoch内
+                // 举例：[100,200] [201,300] 有两个epoch，slave传过来的nextTransferFromWhere=150，所以此时的currentEpochEndOffset=200
+                // 本次传输的是[100,200]这个epoch日志数据，此时的size=150（剩余的日志大小 300-150）+ nextTransferFromWhere=150 > currentEpochEndOffset=200
+                // 所以需要缩小size： currentEpochEndOffset=200 - this.nextTransferFromWhere=150 = 50，保证一次传输的数据不会跨epoch
                 if (currentEpochEndOffset != -1 && this.nextTransferFromWhere + size > currentEpochEndOffset) {
                     final EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.nextEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
                     if (epochEntry == null) {

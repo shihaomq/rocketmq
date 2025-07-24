@@ -243,10 +243,13 @@ public class ReplicasManager {
                 if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
                     // Change SyncStateSet
                     final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
+                    // 更新本地的同步副本信息（SyncStateSet）、同步副本版本号（yncStateSetEpoch）
+                    // 更新HaService中的的SyncStateSet
                     changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
                     // if master doesn't change
                     this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch);
                     this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
+                    // 再次提交 检查本次同步副本信息任务
                     this.executorService.submit(this::checkSyncStateSetAndDoReport);
                     registerBrokerWhenRoleChange();
                     return;
@@ -254,9 +257,12 @@ public class ReplicasManager {
                 // broker角色未发生变化执行的逻辑（原本就是从，MasterEpoch版本变更后，自己变成主）
                 // Change SyncStateSet
                 final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
+                // 更新本地的同步副本信息（SyncStateSet）、同步副本版本号（yncStateSetEpoch）
+                // 更新HaService中的的SyncStateSet
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
 
                 // Handle the slave synchronise
+                // 关闭元数据同步任务
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
                 // Notify ha service, change to master
@@ -269,6 +275,9 @@ public class ReplicasManager {
                 //    2.2.3 清理异常位点后的commitlog文件数据
                 //    2.2.4 恢复（更新）写位点map(topicQueueTable)
                 //    2.2.5 重建并重启rePut线程，从调整的位点开始分发CQ
+                //3. 更新EpochFile（用于存放 <Epoch, StartOffset> 序列）
+                //4. 再次恢复（更新）写位点map(topicQueueTable)
+                //5. 更新状态机版本号
                 this.haService.changeToMaster(newMasterEpoch);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
@@ -287,7 +296,7 @@ public class ReplicasManager {
                 schedulingCheckSyncStateSet();
                 //更新topic.json版本
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
-                // 再次提交 检查本次同步副本信任务
+                // 再次提交 检查本次同步副本信息任务
                 this.executorService.submit(this::checkSyncStateSetAndDoReport);
                 // 重新向nameser注册 broker信息
                 registerBrokerWhenRoleChange();
@@ -311,10 +320,12 @@ public class ReplicasManager {
                 }
 
                 // Stop checking syncStateSet because only master is able to check
+                // 停止定时检测SyncStateSet的任务
                 stopCheckSyncStateSet();
 
                 // Change config(compatibility problem)
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
+                // 停止一些特殊线程
                 this.brokerController.changeSpecialServiceStatus(false);
                 // The brokerId in brokerConfig just means its role(master[0] or slave[>=1])
                 this.brokerConfig.setBrokerId(brokerControllerId);
@@ -324,6 +335,7 @@ public class ReplicasManager {
                 this.masterBrokerId = newMasterBrokerId;
 
                 // Handle the slave synchronise
+                // 开启元数据同步任务
                 handleSlaveSynchronize(BrokerRole.SLAVE);
 
                 // Notify ha service, change to slave
