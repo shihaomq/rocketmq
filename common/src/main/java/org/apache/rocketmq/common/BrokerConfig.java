@@ -302,6 +302,11 @@ public class BrokerConfig extends BrokerIdentity {
      * put to master (master of the same process in broker container mode or other masters in cluster when enableFailoverRemotingActing is true)
      * when enableSlaveActingMaster is true
      */
+    /**
+     * 当启用enableSlaveActingMaster配置时，如果主节点（Master）宕机，从节点将承担主节点的职责。此时，定时消息或事务消息会发送到：
+     * 同一进程中的主节点（Broker容器模式下）
+     * 或集群中的其他主节点（当enableFailoverRemotingActing为true时
+     */
     private boolean enableSlaveActingMaster = false;
 
     private boolean enableRemoteEscape = false;
@@ -348,6 +353,11 @@ public class BrokerConfig extends BrokerIdentity {
      * It is an important basis for the controller to choose the broker master.
      * The lower the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
      * You can set a lower priority for the broker with better machine conditions.
+     */
+    /**
+     * 优先级规则：brokerElectionPriority值越低，被选为master的优先级越高
+     * 配置建议：可以为机器条件更好的broker设置较低的优先级值
+     * 应用场景：作为控制器选择broker主节点的重要依据
      */
     private int brokerElectionPriority = Integer.MAX_VALUE;
 
@@ -404,6 +414,9 @@ public class BrokerConfig extends BrokerIdentity {
     /**
      * This flag and deleteTopicWithBrokerRegistration flag in the NameServer cannot be set to true at the same time,
      * otherwise there will be a loss of routing
+     */
+    /**
+     * 如果这个flag和deleteTopicWithBrokerRegistration flag两个标志位同时为true，会导致路由信息丢失的问题
      */
     private boolean enableSplitRegistration = false;
 

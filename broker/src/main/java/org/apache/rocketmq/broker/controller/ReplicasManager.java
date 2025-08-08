@@ -59,10 +59,10 @@ import org.apache.rocketmq.store.ha.autoswitch.TempBrokerMetadata;
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 
 /**
- * The manager of broker replicas, including: 0.regularly syncing controller metadata, change controller leader address,
- * both master and slave will start this timed task. 1.regularly syncing metadata from controllers, and changing broker
- * roles and master if needed, both master and slave will start this timed task. 2.regularly expanding and Shrinking
- * syncStateSet, only master will start this timed task.
+ broker副本管理器，包括：
+ 0. 定期同步controller元数据，更换controller leader地址，master和slave都会启动这个定时任务。
+ 1. 定期从controllers同步元数据，并在需要时更改broker角色和master，master和slave都会启动这个定时任务。
+ 2. 定期扩展和收缩syncStateSet，只有master会启动这个定时任务。
  */
 public class ReplicasManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -206,10 +206,11 @@ public class ReplicasManager {
                 return false;
             }
         }
-
+        // 定时每5s向从节点同步SyncStateSet
         schedulingSyncBrokerMetadata();
 
         // Register syncStateSet changed listener.
+        // SyncStateSet发生变化时，向controller更新SyncStateSet。
         this.haService.registerSyncStateSetChangedListener(this::doReportSyncStateSetChanged);
         return true;
     }
@@ -244,7 +245,7 @@ public class ReplicasManager {
                     // Change SyncStateSet
                     final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                     // 更新本地的同步副本信息（SyncStateSet）、同步副本版本号（yncStateSetEpoch）
-                    // 更新HaService中的的SyncStateSet
+                    // 更新HaService中的SyncStateSet
                     changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
                     // if master doesn't change
                     this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch);

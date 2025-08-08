@@ -228,6 +228,7 @@ public class EpochFileCache {
         this.readLock.lock();
         try {
             long consistentOffset = -1;
+            //返回一个从大到小的降序的map
             final Map<Integer, EpochEntry> descendingMap = new TreeMap<>(this.epochMap).descendingMap();
             final Iterator<Map.Entry<Integer, EpochEntry>> iter = descendingMap.entrySet().iterator();
             while (iter.hasNext()) {

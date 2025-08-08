@@ -125,6 +125,12 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         // Truncate dirty file
+        //  2.2. truncateDirtyFiles
+        //    2.2.1 停止消息CQ分发（rePut）线程
+        //    2.2.2 清理异常位点后的CQ文件数据
+        //    2.2.3 清理异常位点后的commitlog文件数据
+        //    2.2.4 恢复（更新）写位点map(topicQueueTable)
+        //    2.2.5 重建并重启rePut线程，从调整的位点开始分发CQ
         final long truncateOffset = truncateInvalidMsg();
 
         this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
@@ -504,6 +510,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         // Here we could use reputFromOffset in DefaultMessageStore directly.
         long reputFromOffset = this.defaultMessageStore.getReputFromOffset();
         do {
+            //拿到某个commitlog文件部分内存数据（reputFromOffset开始到文件结束）
             SelectMappedBufferResult result = this.defaultMessageStore.getCommitLog().getData(reputFromOffset);
             if (result == null) {
                 break;

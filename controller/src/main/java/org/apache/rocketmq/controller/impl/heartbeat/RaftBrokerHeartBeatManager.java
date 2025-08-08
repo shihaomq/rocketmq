@@ -115,6 +115,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         BrokerLiveInfo liveInfo = new BrokerLiveInfo(brokerName,
             brokerAddr,
             realBrokerId,
+            //在提交给statMachine时，固定心跳时间，保证各个controller收到的broker心跳时间相同
             System.currentTimeMillis(),
             realTimeoutMillis,
             null,

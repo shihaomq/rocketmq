@@ -116,7 +116,8 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         while (iterator.hasNext()) {
             final Map.Entry<BrokerIdentityInfo, BrokerLiveInfo> next = iterator.next();
             long last = next.getValue().getLastUpdateTimestamp();
-            long timeoutMillis = next.getValue().getHeartbeatTimeoutMillis();
+            long timeoutMillis = next.getValue().getHeartbeatTimeoutMillis(); // 10s
+            //超过10s，则判断下线，移除
             if (checkTime - last > timeoutMillis) {
                 notActiveBrokerIdentityInfoList.add(next.getKey());
                 iterator.remove();
@@ -153,6 +154,7 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         if (info != null) {
             long last = info.getLastUpdateTimestamp();
             long timeoutMillis = info.getHeartbeatTimeoutMillis();
+            //上一次更新时间 + 超时时间（10s） >= 方法调用时间
             return (last + timeoutMillis) >= invokeTime;
         }
         return false;

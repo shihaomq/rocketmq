@@ -36,6 +36,9 @@ public class DefaultElectPolicy implements ElectPolicy {
     private BrokerLiveInfoGetter brokerLiveInfoGetter;
 
     // Sort in descending order according to<epoch, offset>, and sort in ascending order according to priority
+    // 主要排序规则：按照epoch字段降序排列
+    // 次要排序规则：当epoch相等时，按maxOffset降序排列
+    // 最终排序规则：当前两个字段都相等时，按broker选主权重（electionPriority）升序排列
     private final Comparator<BrokerLiveInfo> comparator = (o1, o2) -> {
         if (o1.getEpoch() == o2.getEpoch()) {
             return o1.getMaxOffset() == o2.getMaxOffset() ? o1.getElectionPriority() - o2.getElectionPriority() :
@@ -61,7 +64,12 @@ public class DefaultElectPolicy implements ElectPolicy {
      *    - Check whether the old master is still valid.
      *    - If preferBrokerAddr is not empty and valid, select it as master.
      *    - Otherwise, we will sort the array of 'brokerLiveInfo' according to (epoch, offset, electionPriority), and select the best candidate as the new master.
-     *
+     * 我们将尝试依次从syncStateBrokers和allReplicaBrokers中选择新的主节点。
+     * 策略如下：
+     *    - 通过'validPredicate'过滤存活的broker。
+     *    - 检查旧主节点是否仍然有效。
+     *    - 如果preferBrokerAddr不为空且有效，则选择它作为主节点。
+     *    - 否则，我们将根据(epoch, offset, electionPriority)对'brokerLiveInfo'数组进行排序，并选择最佳候选者作为新主节点。
      * @param clusterName       the brokerGroup belongs
      * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
@@ -91,6 +99,7 @@ public class DefaultElectPolicy implements ElectPolicy {
     private Long tryElect(String clusterName, String brokerName, Set<Long> brokers, Long oldMaster,
         Long preferBrokerId) {
         if (this.validPredicate != null) {
+            //1. 通过'validPredicate'过滤存活的broker
             brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.check(clusterName, brokerName, brokerAddr)).collect(Collectors.toSet());
         }
         if (!brokers.isEmpty()) {
