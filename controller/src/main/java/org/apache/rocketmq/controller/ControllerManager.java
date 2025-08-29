@@ -127,7 +127,9 @@ public class ControllerManager {
         // Initialize the basic resources
         this.heartbeatManager.initialize();
 
-        // Register broker inactive listener
+        // 注册broker失活监听，controller探测broker失活时触发
+        // 1. 触发重新选主
+        // 2. 触发broker角色切换方法，通知组内所有broker，master变更
         this.heartbeatManager.registerBrokerLifecycleListener(this::onBrokerInactive);
         this.controller.registerBrokerLifecycleListener(this::onBrokerInactive);
         registerProcessor();
@@ -160,6 +162,7 @@ public class ControllerManager {
                 }
                 final GetReplicaInfoResponseHeader replicaInfoResponseHeader = (GetReplicaInfoResponseHeader) replicaInfoResponse.readCustomHeader();
                 // Not master broker offline
+                // 表示slave broker 离线，不需要触发选举
                 if (!brokerId.equals(replicaInfoResponseHeader.getMasterBrokerId())) {
                     log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerName);
                     return;
@@ -193,6 +196,7 @@ public class ControllerManager {
 
     private void triggerElectMaster(String brokerName) {
         int maxRetryCount = controllerConfig.getElectMasterMaxRetryCount();
+        //重试3次
         for (int i = 0; i < maxRetryCount; i++) {
             try {
                 Boolean electResult = triggerElectMaster0(brokerName).get(3, TimeUnit.SECONDS);
@@ -321,6 +325,7 @@ public class ControllerManager {
 
         public void notifyBroker(String brokerAddress, RoleChangeNotifyEntry entry) {
             int masterEpoch = entry.getMasterEpoch();
+            // notify任务缓存map，任务完成从缓存中移除
             NotifyTask oldTask = this.currentNotifyFutures.get(brokerAddress);
             if (oldTask != null && masterEpoch > oldTask.getMasterEpoch()) {
                 // cancel current future

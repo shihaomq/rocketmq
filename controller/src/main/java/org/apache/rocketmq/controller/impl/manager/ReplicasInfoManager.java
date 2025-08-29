@@ -219,7 +219,7 @@ public class ReplicasInfoManager {
         // elect by policy
         if (newMaster == null || newMaster == -1) {
             // we should assign this assignedBrokerId when the brokerAddress need to be elected by force
-            //根据请求是否强制指定Broker ID来决定是否使用该ID进行选举。如果request.getDesignateElect()为true，
+            // 根据请求是否强制指定Broker ID来决定是否使用该ID进行选举。如果request.getDesignateElect()为true，
             // 则将brokerId作为指定的Broker ID传入选举策略中，以强制选举该Broker为主节点
             Long assignedBrokerId = request.getDesignateElect() ? brokerId : null;
             newMaster = electPolicy.elect(brokerReplicaInfo.getClusterName(), brokerReplicaInfo.getBrokerName(), syncStateSet, allReplicaBrokers, oldMaster, assignedBrokerId);

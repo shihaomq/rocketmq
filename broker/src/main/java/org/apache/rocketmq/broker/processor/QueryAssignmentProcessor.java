@@ -107,6 +107,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final QueryAssignmentResponseBody responseBody = new QueryAssignmentResponseBody();
 
+        //消费模式默认pull，修改成pop模式需要通过mqadmin setConsumeMode命令或者mqAdminExt.setMessageRequestMode方法修改
         SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = this.messageRequestModeManager.getMessageRequestMode(topic, consumerGroup);
 
         if (setMessageRequestModeRequestBody == null) {
@@ -238,6 +239,8 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         int popShareQueueNum) {
 
         List<MessageQueue> allocateResult;
+        //popShareQueueNum：客户端共享队列数量
+        //如果这个值小与等于0或者大于等于客户端数量，则每个客户端都能消费所有队列
         if (popShareQueueNum <= 0 || popShareQueueNum >= cidAll.size() - 1) {
             //each client pop all messagequeue
             allocateResult = new ArrayList<>(mqAll.size());

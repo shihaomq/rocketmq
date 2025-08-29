@@ -183,6 +183,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
     }
 
     private void scanNotActiveBroker() {
+        //只有leader controller才能扫描not active broker
         if (!controller.isLeaderState()) {
             log.info("current node is not leader, skip scan not active broker");
             return;
@@ -202,9 +203,11 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
             if (remotingCommand.getCode() != ResponseCode.SUCCESS) {
                 throw new RuntimeException("check not active broker return invalid code, code: " + remotingCommand.getCode());
             }
+            //返回离线的broker信息
             List<BrokerIdentityInfo> notActiveAndNeedReElectBrokerIdentityInfoList = JSON.parseObject(remotingCommand.getBody(), new TypeReference<List<BrokerIdentityInfo>>() {
             }.getType());
             if (notActiveAndNeedReElectBrokerIdentityInfoList != null && !notActiveAndNeedReElectBrokerIdentityInfoList.isEmpty()) {
+                //循环离线的broker，关闭channel
                 notActiveAndNeedReElectBrokerIdentityInfoList.forEach(brokerIdentityInfo -> {
                     Iterator<Map.Entry<Channel, BrokerIdentityInfo>> iterator = brokerChannelIdentityInfoMap.entrySet().iterator();
                     Channel channel = null;
@@ -220,6 +223,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
                             break;
                         }
                     }
+                    //触发brokerInActive事件
                     this.executor.submit(() -> notifyBrokerInActive(brokerIdentityInfo.getClusterName(), brokerIdentityInfo.getBrokerName(), brokerIdentityInfo.getBrokerId()));
                     log.warn("The broker channel {} expired, brokerInfo {}", channel, brokerIdentityInfo);
                 });

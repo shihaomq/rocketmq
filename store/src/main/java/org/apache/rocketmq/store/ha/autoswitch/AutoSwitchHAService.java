@@ -68,6 +68,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private final Lock writeLock = syncStateSetReadWriteLock.writeLock();
 
     //  Indicate whether the syncStateSet is currently in the process of being synchronized to controller.
+    //用于指示"syncStateSet"（同步状态集合）当前是否正在向controller进行同步的过程。这是一个状态标识，用来跟踪同步操作的执行状态
     private volatile boolean isSynchronizingSyncStateSet = false;
 
     private EpochFileCache epochCache;
@@ -142,6 +143,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         // Append new epoch to epochFile
         final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
         if (this.epochCache.lastEpoch() >= masterEpoch) {
+            //新的master任期比久的小，则移除epochCache中比新的master任期大的EpochEntry
             this.epochCache.truncateSuffixByEpoch(masterEpoch);
         }
         this.epochCache.appendEntry(newEpochEntry);

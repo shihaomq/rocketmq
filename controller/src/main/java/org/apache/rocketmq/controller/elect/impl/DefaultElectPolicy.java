@@ -97,7 +97,7 @@ public class DefaultElectPolicy implements ElectPolicy {
     }
 
     private Long tryElect(String clusterName, String brokerName, Set<Long> brokers, Long oldMaster,
-        Long preferBrokerId) {
+        Long preferBrokerId ) {
         if (this.validPredicate != null) {
             //1. 通过'validPredicate'过滤存活的broker
             brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.check(clusterName, brokerName, brokerAddr)).collect(Collectors.toSet());
@@ -109,6 +109,7 @@ public class DefaultElectPolicy implements ElectPolicy {
             }
 
             // if preferBrokerAddr is valid, we choose it, otherwise we choose nothing
+            // 指定的brokerId
             if (preferBrokerId != null) {
                 return brokers.contains(preferBrokerId) ? preferBrokerId : null;
             }

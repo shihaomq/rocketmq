@@ -51,7 +51,9 @@ public class TransactionalMessageCheckService extends ServiceThread {
 
     @Override
     protected void onWaitEnd() {
+        //事务消息的最小检查时间间隔（6s）。只有当消息的发送时间超过这个最小时间间隔时，该事务消息才会被首次检查处理
         long timeout = brokerController.getBrokerConfig().getTransactionTimeOut();
+        //事务消息回查最大次数10次，超过10次则投入私信队列
         int checkMax = brokerController.getBrokerConfig().getTransactionCheckMax();
         long begin = System.currentTimeMillis();
         log.info("Begin to check prepare message, begin time:{}", begin);

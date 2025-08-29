@@ -137,7 +137,9 @@ public class ReplicasManager {
     public void start() {
         this.state = State.INITIAL;
         updateControllerAddr();
+        //检测controller地址连通性
         scanAvailableControllerAddresses();
+        //定时更新controller的地址
         this.scheduledService.scheduleAtFixedRate(this::updateControllerAddr, 2 * 60 * 1000, 2 * 60 * 1000, TimeUnit.MILLISECONDS);
         this.scheduledService.scheduleAtFixedRate(this::scanAvailableControllerAddresses, 3 * 1000, 3 * 1000, TimeUnit.MILLISECONDS);
         if (!startBasicService()) {
@@ -206,7 +208,7 @@ public class ReplicasManager {
                 return false;
             }
         }
-        // 定时每5s向从节点同步SyncStateSet
+        // 定时每5s向从controller同步SyncStateSet
         schedulingSyncBrokerMetadata();
 
         // Register syncStateSet changed listener.
@@ -280,7 +282,7 @@ public class ReplicasManager {
                 //4. 再次恢复（更新）写位点map(topicQueueTable)
                 //5. 更新状态机版本号
                 this.haService.changeToMaster(newMasterEpoch);
-
+                //强制将内存中的master id 改成0 兼容旧版rocketmq逻辑，与从controller申请回来的brokerControllerId不同。
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
                 // 启动一些特殊线程
