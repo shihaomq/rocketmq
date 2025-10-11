@@ -313,6 +313,8 @@ public class AutoSwitchHAService extends DefaultHAService {
     /**
      * Check and maybe add the slave to SyncStateSet. A slave will be added to SyncStateSet if its slaveMaxOffset >=
      * current confirmOffset, and it is caught up to an offset within the current leader epoch.
+     * 这段代码的功能是：
+     * 检查并可能将从节点添加到同步状态集合中。当从节点的最大偏移量大于等于当前确认偏移量，并且该从节点在当前领导者任期内的偏移量范围内时，就会被加入同步状态集合。
      */
     public void maybeExpandInSyncStateSet(final Long slaveBrokerId, final long slaveMaxOffset) {
         final Set<Long> currentSyncStateSet = getLocalSyncStateSet();
